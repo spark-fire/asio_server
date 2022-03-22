@@ -1,6 +1,6 @@
 QT -= gui
 
-CONFIG += c++11 console
+CONFIG += c++17 console
 CONFIG -= app_bundle
 
 INCLUDEPATH += $$PWD
@@ -13,6 +13,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 INCLUDEPATH += $$PWD/asio-src/include   \
                $$PWD/asio    \
+               $$PWD/nlohmann    \
 
 
 # You can also make your code fail to compile if it uses deprecated APIs.
@@ -21,7 +22,8 @@ INCLUDEPATH += $$PWD/asio-src/include   \
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        main.cpp
+        main.cpp \
+        rtde/rtde_service.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -29,4 +31,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-#    asio/asio_server.h
+    asio/asio_server.h \
+    rtde/rtde_asio.h \
+    rtde/rtde_service.h \
+    rtde/type_def.h
