@@ -4,6 +4,8 @@
 #include "asio/asio_server.h"
 #include "rtde_service.h"
 
+#include <QDebug>
+
 using asio::ip::tcp;
 
 class RTDECallback : public RtdeCallback
@@ -18,23 +20,22 @@ public:
     ~RTDECallback() {}
     int onConnect(SessionPtr session)
     { // Output::actual_q;
-        // 连接之后需要直接反馈菜单给用户
-        //        LOGGING(INFO) << "An RTDE session built ip "
-        //                      <<
-        //                      session->getRemoteInfo().address().to_string()
-        //                      << ":"
-        //                      << session->getRemoteInfo().port();
-        Json j;
-        j["protocol"] = "RTDE";
-        j["version"] = 1;
+      // 连接之后需要直接反馈菜单给用户
+        qDebug() << "An RTDE session built ip "
+                 << QString::fromStdString(
+                        session->getRemoteInfo().address().to_string())
+                 << ":" << session->getRemoteInfo().port();
+        //        Json j;
+        //        j["protocol"] = "RTDE";
+        //        j["version"] = 1;
 
-        auto service_ = session->getUserData();
-        j["input"] = service_->getInputMap();
-        j["output"] = service_->getOutputMap();
-        auto str = j.dump();
-        str.append("\n\n");
+        //        auto service_ = session->getUserData();
+        //        j["input"] = service_->getInputMap();
+        //        j["output"] = service_->getOutputMap();
+        //        auto str = j.dump();
+        //        str.append("\n\n");
 
-        session->doWrite(str);
+        //        session->doWrite(str);
 
         return 0;
     }
