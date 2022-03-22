@@ -26,13 +26,12 @@ int main(int argc, char *argv[])
     rtde_asio_ = std::make_shared<RtdeAsio>(rtde_tcp_port, rtde_service);
 
     //    // 打包所有的菜单
-    rtde_service->packAll();
-
-    rtde_asio_->update();
+    //    rtde_service->packAll();
 
     while (1) {
         printf(" I am in main !  heat ...... \n");
-        sleep(1);
+        sleep(3);
+        rtde_asio_->update();
     }
 
     return a.exec();

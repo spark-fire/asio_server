@@ -2,6 +2,7 @@
 #define AUBO_COMM_ASIO_SERVER_H
 
 #include "asio.hpp"
+#include <QDebug>
 
 // namespace rtde {
 
@@ -157,28 +158,28 @@ public:
     //    }
     void doAccept()
     {
-        acceptor_.async_accept(
-            [this](std::error_code error_code, tcp::socket socket) {
-                if (!error_code) {
-                    // \TODO(louwei): 需要限制一下会话的数量
-                    // \TODO(louwei): 还需要做身份认证，校验用户名密码
-                    if (sessions_.size() < 50) {
-                        //                        auto s =
-                        //                        std::make_shared<Session>(
-                        //                            user_data_,
-                        //                            std::move(socket),
-                        //                            log_handler_);
-                        auto s = std::make_shared<Session>(user_data_,
-                                                           std::move(socket));
-                        sessions_.push_back(s);
+        acceptor_.async_accept([this](std::error_code error_code,
+                                      tcp::socket socket) {
+            if (!error_code) {
+                // \TODO(louwei): 需要限制一下会话的数量
+                // \TODO(louwei): 还需要做身份认证，校验用户名密码
+                if (sessions_.size() < 50) {
+                    auto s = std::make_shared<Session>(user_data_,
+                                                       std::move(socket));
+                    sessions_.push_back(s);
 
-                        s->getCallback()->onConnect(s);
-                        s->do_read();
-                    }
+                    qDebug() << "An RTDE session built ip "
+                             << QString::fromStdString(
+                                    s->getRemoteInfo().address().to_string())
+                             << ":" << s->getRemoteInfo().port();
+
+                    s->getCallback()->onConnect(s);
+                    s->do_read();
                 }
+            }
 
-                doAccept(); // 重新accept
-            });
+            doAccept(); // 重新accept
+        });
     }
 
     void update()
