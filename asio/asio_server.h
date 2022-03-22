@@ -6,7 +6,11 @@ template <class T>
 class session : public std::enable_shared_from_this<session<T>>
 {
 public:
-    session(tcp::socket socket) : socket_(std::move(socket))
+    using UserType = typename T::UserType;
+    using UserTypePtr = std::shared_ptr<UserType>;
+
+    session(UserTypePtr user_data, tcp::socket socket)
+        : user_data_(user_data), socket_(std::move(socket))
     {
         cb_ = std::make_shared<T>();
         connected_ = true;
@@ -38,17 +42,36 @@ public:
                 if (!ec) {
                     // 处理接收到的消息
                     // 解决TCP Stream数据包分割的问题
-//                    cb_->onReceive(self, data_.data(), length);
+                    cb_->onReceive(self, data_.data(), length);
 
                     // 继续读取
                     do_read();
-//                                        do_write(data_.data() , length);
+                    //                                        do_write(data_.data()
+                    //                                        , length);
                     printf("------------- \n");
                 } else {
-                    // \TODO(louwei): 断开连接之后是否需要对机器人做安全保护措施
+                    // 断开连接之后是否需要对机器人做安全保护措施
                     ec.message();
                     connected_ = false;
-//                    cb_->onClose(self);
+                    cb_->onClose(self);
+                }
+            });
+    }
+
+    template <typename _T>
+    void doWrite(_T &&str)
+    {
+        auto self =
+            std::enable_shared_from_this<session<T>>::shared_from_this();
+
+        asio::async_write(
+            socket_, asio::buffer(str),
+            [self, this](std::error_code error_code, std::size_t length) {
+                if (error_code) {
+                    connected_ = false;
+                    cb_->onClose(self);
+                } else {
+                    // std::cout << "doWrite " << length << std::endl;
                 }
             });
     }
@@ -58,12 +81,13 @@ public:
         //        auto self(shared_from_this());
         auto self =
             std::enable_shared_from_this<session<T>>::shared_from_this();
+
         asio::async_write(socket_, asio::buffer(data, length),
                           [this, self](std::error_code ec, std::size_t length) {
                               if (ec) {
                                   //                    do_read();
                                   connected_ = false;
-//                                  cb_->onClose(self);
+                                  cb_->onClose(self);
                               } else {
                                   // std::cout << "doWrite " << length <<
                                   // std::endl;
@@ -75,8 +99,10 @@ public:
     tcp::endpoint getRemoteInfo() { return socket_.remote_endpoint(); }
 
     std::shared_ptr<T> getCallback() { return cb_; }
+    UserTypePtr getUserData() { return user_data_; }
 
 private:
+    UserTypePtr user_data_;
     bool connected_{ false };
     std::shared_ptr<T> cb_;
     tcp::socket socket_;
