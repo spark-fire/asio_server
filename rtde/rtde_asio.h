@@ -1,3 +1,6 @@
+#ifndef AUBO_COMM_RTDE_ASIO_H
+#define AUBO_COMM_RTDE_ASIO_H
+
 #include "asio/asio_server.h"
 #include "rtde_service.h"
 
@@ -7,7 +10,7 @@ class RTDECallback : public RtdeCallback
 {
 public:
     using UserType = RtdeService;
-    using Session = session<RTDECallback>;
+    using Session = TcpSession<RTDECallback>;
     using SessionPtr = std::shared_ptr<Session>;
 
     RTDECallback() : RtdeCallback() {}
@@ -74,4 +77,7 @@ public:
         //        LOGGING(INFO) << "An RTDE session closed ";
     }
 };
-typedef server<RTDECallback> RtdeAsio;
+
+typedef TcpServer<RTDECallback> RtdeAsio;
+
+#endif // AUBO_COMM_RTDE_ASIO_H

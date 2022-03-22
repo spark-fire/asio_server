@@ -1,3 +1,6 @@
+#ifndef AUBO_COMM_RTDE_SERVICE_H
+#define AUBO_COMM_RTDE_SERVICE_H
+
 #include "json.hpp"
 #include "rtde_recipe.h"
 
@@ -45,7 +48,6 @@ public:
     void setRecipe(std::shared_ptr<RtdeService> service, int n, const Json &j);
 
 protected:
-    //    LogHandler log_handler_;
     uint64_t last_time = 0;
 
     std::unordered_map<int, std::vector<int>> output_recipes_;
@@ -105,3 +107,5 @@ private:
     // 缓存的 RTDE 数据包
     std::unordered_map<int, std::vector<uint8_t>> buffers_;
 };
+
+#endif // AUBO_COMM_RTDE_SERVICE_H
