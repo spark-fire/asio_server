@@ -1,15 +1,20 @@
+#ifndef AUBO_COMM_ASIO_SERVER_H
+#define AUBO_COMM_ASIO_SERVER_H
+
 #include "asio.hpp"
+
+// namespace rtde {
 
 using asio::ip::tcp;
 
 template <class T>
-class session : public std::enable_shared_from_this<session<T>>
+class TcpSession : public std::enable_shared_from_this<TcpSession<T>>
 {
 public:
     using UserType = typename T::UserType;
     using UserTypePtr = std::shared_ptr<UserType>;
 
-    session(UserTypePtr user_data, tcp::socket socket)
+    TcpSession(UserTypePtr user_data, tcp::socket socket)
         : user_data_(user_data), socket_(std::move(socket))
     {
         cb_ = std::make_shared<T>();
@@ -32,7 +37,7 @@ public:
         memset(data_.data(), 0, sizeof(data_));
         //        auto self(shared_from_this());
         auto self =
-            std::enable_shared_from_this<session<T>>::shared_from_this();
+            std::enable_shared_from_this<TcpSession<T>>::shared_from_this();
         int arg[] = { 1 };
         setsockopt(socket_.native_handle(), IPPROTO_TCP, TCP_QUICKACK, arg,
                    sizeof(int));
@@ -62,7 +67,7 @@ public:
     void doWrite(_T &&str)
     {
         auto self =
-            std::enable_shared_from_this<session<T>>::shared_from_this();
+            std::enable_shared_from_this<TcpSession<T>>::shared_from_this();
 
         asio::async_write(
             socket_, asio::buffer(str),
@@ -80,7 +85,7 @@ public:
     {
         //        auto self(shared_from_this());
         auto self =
-            std::enable_shared_from_this<session<T>>::shared_from_this();
+            std::enable_shared_from_this<TcpSession<T>>::shared_from_this();
 
         asio::async_write(socket_, asio::buffer(data, length),
                           [this, self](std::error_code ec, std::size_t length) {
@@ -114,28 +119,96 @@ private:
     std::array<char, max_length> data_;
 };
 
+/**
+ * @tparam T 回调函数
+ */
 template <class T>
-class server
+class TcpServer
 {
 public:
-    using Session = session<T>;
-    server(asio::io_context &io_context, short port)
-        : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
+    using Session = TcpSession<T>;
+    using UserType = typename T::UserType;
+    using UserTypePtr = std::shared_ptr<UserType>;
+    using SessionPtr = std::shared_ptr<Session>;
+
+    //    TcpServer(asio::io_context &io_context, short port)
+    //        : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
+    //    {
+    //        do_accept();
+    //    }
+
+    TcpServer(int port, UserTypePtr user_data)
+        : acceptor_(io_context_, tcp::endpoint(tcp::v4(), port)),
+          user_data_(user_data)
     {
-        do_accept();
+        doAccept();
+    }
+
+    //    void do_accept()
+    //    {
+    //        acceptor_.async_accept([this](std::error_code ec, tcp::socket
+    //        socket) {
+    //            if (!ec) {
+    //                std::make_shared<Session>(std::move(socket))->start();
+    //            }
+
+    //            do_accept();
+    //        });
+    //    }
+    void doAccept()
+    {
+        acceptor_.async_accept(
+            [this](std::error_code error_code, tcp::socket socket) {
+                if (!error_code) {
+                    // \TODO(louwei): 需要限制一下会话的数量
+                    // \TODO(louwei): 还需要做身份认证，校验用户名密码
+                    if (sessions_.size() < 50) {
+                        //                        auto s =
+                        //                        std::make_shared<Session>(
+                        //                            user_data_,
+                        //                            std::move(socket),
+                        //                            log_handler_);
+                        auto s = std::make_shared<Session>(user_data_,
+                                                           std::move(socket));
+                        sessions_.push_back(s);
+
+                        s->getCallback()->onConnect(s);
+                        s->do_read();
+                    }
+                }
+
+                doAccept(); // 重新accept
+            });
+    }
+
+    void update()
+    {
+        // 清除断开的session
+        for (auto it = sessions_.begin(); it != sessions_.end();) {
+            if (!(*it)->isConnected()) {
+                sessions_.erase(it);
+            } else {
+                it++;
+            }
+        }
+
+        for (auto it : sessions_) {
+            if (it->isConnected()) {
+                it->getCallback()->onUpdate(it);
+            }
+        }
+
+        // 驱动ASIO
+        io_context_.poll();
     }
 
 private:
-    void do_accept()
-    {
-        acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
-            if (!ec) {
-                std::make_shared<Session>(std::move(socket))->start();
-            }
-
-            do_accept();
-        });
-    }
-
+    asio::io_context io_context_;
     tcp::acceptor acceptor_;
+    std::vector<SessionPtr> sessions_;
+    UserTypePtr user_data_;
 };
+
+//} // namespace rtde
+
+#endif // AUBO_COMM_ASIO_SERVER_H

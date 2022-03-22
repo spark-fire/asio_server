@@ -1,3 +1,6 @@
+#ifndef COMMON_INTERFACE_TYPE_DEF_H
+#define COMMON_INTERFACE_TYPE_DEF_H
+
 #include <vector>
 #include <memory>
 
@@ -10,3 +13,5 @@ struct RtdeRecipe
     int trigger;                       ///< 触发方式: 0 - 周期; 1 - 变化
     std::vector<std::string> segments; ///< 字段列表
 };
+
+#endif
